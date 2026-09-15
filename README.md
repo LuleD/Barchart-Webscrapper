@@ -92,8 +92,43 @@ a `raw_row` JSON column preserving the original scraped text for every field
 sqlite3 data/barchart_options.db "select * from option_snapshots order by scraped_at desc limit 10;"
 ```
 
-This is intentionally just a scraper + local datastore for now — a web page
-to display the data can be layered on top of this database later.
+## Dashboard
+
+A read-only dashboard (`barchart_scraper/webapp.py`, FastAPI) shows the most
+recent snapshot as a calls/strike/puts table, matching the site's layout.
+`barchart_scraper/serve.py` runs the scraper's polling loop and this
+dashboard together in a single process, so one deployment does both:
+
+```bash
+python -m barchart_scraper.serve
+# open http://localhost:8000
+```
+
+`GET /api/latest` returns the same data as JSON.
+
+## Deploying (Railway)
+
+The `Dockerfile` builds an image that runs `serve.py`. Two things need to be
+set for a cloud deploy, since it can't do the interactive login step:
+
+1. **Persistent storage** — mount a volume (e.g. at `/data`) and set
+   `DATA_DIR=/data` so the SQLite DB and session survive restarts/redeploys.
+2. **A logged-in session** — run `python -m barchart_scraper.cli login`
+   *locally* first (this opens a real browser for you to log in), then:
+
+   ```bash
+   base64 -w0 data/storage_state.json   # macOS: base64 -i data/storage_state.json
+   ```
+
+   Set the output as the `BARCHART_STORAGE_STATE_B64` environment variable on
+   the deployed service. On first boot it's decoded to
+   `$DATA_DIR/storage_state.json`; after that the scraper reuses the file on
+   the volume directly. Barchart sessions expire eventually — when scraping
+   starts failing with what looks like a login/auth issue, repeat this step
+   and update the variable.
+
+Without a valid session, the service still runs and serves the dashboard,
+but shows "no data yet" — logging in is what actually produces data.
 
 ## Tests
 

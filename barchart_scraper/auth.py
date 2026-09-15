@@ -9,11 +9,31 @@ you only need to do this occasionally (whenever the session expires).
 """
 
 import asyncio
+import base64
 import pathlib
 
 from playwright.async_api import async_playwright
 
 from . import config
+
+
+def bootstrap_storage_state_from_env() -> None:
+    """Write a base64-encoded session (BARCHART_STORAGE_STATE_B64) to disk.
+
+    For deployments where interactive login isn't possible (e.g. a cloud
+    container): run `login` locally to produce storage_state.json, base64
+    it, and set that as this env var. No-op if the file already exists or
+    the env var isn't set.
+    """
+    import os
+
+    if pathlib.Path(config.STORAGE_STATE_PATH).exists():
+        return
+    b64 = os.getenv("BARCHART_STORAGE_STATE_B64", "").strip()
+    if not b64:
+        return
+    pathlib.Path(config.STORAGE_STATE_PATH).parent.mkdir(parents=True, exist_ok=True)
+    pathlib.Path(config.STORAGE_STATE_PATH).write_bytes(base64.b64decode(b64))
 
 
 async def manual_login() -> None:

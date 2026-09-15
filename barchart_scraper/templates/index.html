@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta http-equiv="refresh" content="60" />
+<title>Barchart Options Dashboard</title>
+<style>
+  :root {
+    --bg: #f7f8fa; --panel: #ffffff; --text: #1a1d21; --muted: #6b7280;
+    --border: #e5e7eb; --call: #0f7b3f; --put: #b3261e; --accent: #2563eb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #14161a; --panel: #1c1f24; --text: #e9eaec; --muted: #9aa0a8;
+      --border: #2b2f36; --call: #34c77f; --put: #ff6b64; --accent: #6ea8fe; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 16px; background: var(--bg); color: var(--text);
+    font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  header { margin-bottom: 16px; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  .meta { color: var(--muted); font-size: 13px; }
+  .meta strong { color: var(--text); }
+  .empty { padding: 32px 16px; text-align: center; color: var(--muted);
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px; }
+  .table-wrap { overflow-x: auto; background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; min-width: 760px; }
+  th, td { padding: 6px 10px; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  thead th { position: sticky; top: 0; background: var(--panel); border-bottom: 1px solid var(--border);
+    font-weight: 600; color: var(--muted); font-size: 12px; text-transform: uppercase; }
+  tbody tr:nth-child(even) { background: color-mix(in srgb, var(--panel) 96%, var(--text) 4%); }
+  td.strike { text-align: center; font-weight: 700; background: color-mix(in srgb, var(--accent) 12%, var(--panel)); }
+  .side-call { color: var(--call); }
+  .side-put { color: var(--put); }
+  .group-head td { font-weight: 700; text-align: center; padding-top: 10px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Barchart Options &mdash; Volatility &amp; Greeks</h1>
+  {% if meta %}
+  <div class="meta">
+    <strong>{{ meta.underlying_symbol }}</strong> &middot; series <strong>{{ meta.option_series_symbol }}</strong>
+    &middot; {{ meta.days_to_expiration }} day(s) to expiration
+    {% if meta.expiration_date %}on {{ meta.expiration_date }}{% endif %}
+    &middot; last updated <strong>{{ meta.scraped_at }}</strong> (UTC)
+    &middot; {{ snapshot_count }} snapshot(s) stored
+  </div>
+  {% else %}
+  <div class="meta">No data yet.</div>
+  {% endif %}
+</header>
+
+{% if rows %}
+<div class="table-wrap">
+<table>
+  <thead>
+    <tr>
+      <th colspan="8" class="side-call">Calls</th>
+      <th>Strike</th>
+      <th colspan="8" class="side-put">Puts</th>
+    </tr>
+    <tr>
+      <th class="side-call">Latest</th><th class="side-call">IV</th><th class="side-call">Delta</th>
+      <th class="side-call">Gamma</th><th class="side-call">Theta</th><th class="side-call">Vega</th>
+      <th class="side-call">IV Skew</th><th class="side-call">Last Trade</th>
+      <th></th>
+      <th class="side-put">Latest</th><th class="side-put">IV</th><th class="side-put">Delta</th>
+      <th class="side-put">Gamma</th><th class="side-put">Theta</th><th class="side-put">Vega</th>
+      <th class="side-put">IV Skew</th><th class="side-put">Last Trade</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in rows %}
+    <tr>
+      <td class="side-call">{{ r.call.latest if r.call else "" }}</td>
+      <td class="side-call">{{ "%.2f"|format(r.call.iv) if r.call and r.call.iv is not none else "" }}</td>
+      <td class="side-call">{{ r.call.delta if r.call else "" }}</td>
+      <td class="side-call">{{ r.call.gamma if r.call else "" }}</td>
+      <td class="side-call">{{ r.call.theta if r.call else "" }}</td>
+      <td class="side-call">{{ r.call.vega if r.call else "" }}</td>
+      <td class="side-call">{{ r.call.iv_skew if r.call else "" }}</td>
+      <td class="side-call">{{ r.call.last_trade if r.call else "" }}</td>
+      <td class="strike">{{ "%.2f"|format(r.strike) }}</td>
+      <td class="side-put">{{ r.put.latest if r.put else "" }}</td>
+      <td class="side-put">{{ "%.2f"|format(r.put.iv) if r.put and r.put.iv is not none else "" }}</td>
+      <td class="side-put">{{ r.put.delta if r.put else "" }}</td>
+      <td class="side-put">{{ r.put.gamma if r.put else "" }}</td>
+      <td class="side-put">{{ r.put.theta if r.put else "" }}</td>
+      <td class="side-put">{{ r.put.vega if r.put else "" }}</td>
+      <td class="side-put">{{ r.put.iv_skew if r.put else "" }}</td>
+      <td class="side-put">{{ r.put.last_trade if r.put else "" }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="empty">
+  No snapshots stored yet. Once the scraper has a valid logged-in session and completes its
+  first poll, data will appear here (page auto-refreshes every 60s).
+  <br /><br />
+  JSON: <a href="/api/latest">/api/latest</a>
+</div>
+{% endif %}
+</body>
+</html>
