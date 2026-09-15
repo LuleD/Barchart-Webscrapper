@@ -44,7 +44,12 @@ async def _dump_debug(page) -> None:
 
 
 async def run_once(page, debug: bool = False) -> None:
-    series = await _get_series(page)
+    try:
+        series = await _get_series(page)
+    except Exception:
+        if debug:
+            await _dump_debug(page)
+        raise
     url = series.url
     if "futuresOptionsView" not in url:
         sep = "&" if "?" in url else "?"

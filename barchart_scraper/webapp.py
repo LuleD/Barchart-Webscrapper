@@ -9,8 +9,8 @@ import pathlib
 import sqlite3
 from typing import Any, Dict, List, Optional, Tuple
 
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 
 from . import config
@@ -96,3 +96,27 @@ async def api_latest() -> JSONResponse:
 @app.get("/healthz")
 async def healthz() -> Dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/debug", response_class=HTMLResponse)
+async def debug_index() -> str:
+    """Lists dumped debug HTML/screenshots from failed scrape cycles.
+
+    Temporary diagnostic aid for tuning series_resolver.py / scraper.py
+    against the real site without shell access to the deployed container.
+    """
+    debug_dir = pathlib.Path(config.DEBUG_DIR)
+    if not debug_dir.exists():
+        return "<p>No debug dumps yet.</p>"
+    files = sorted(debug_dir.iterdir(), reverse=True)
+    links = "".join(f'<li><a href="/debug/{f.name}">{f.name}</a></li>' for f in files)
+    return f"<ul>{links}</ul>" if links else "<p>No debug dumps yet.</p>"
+
+
+@app.get("/debug/{filename}")
+async def debug_file(filename: str) -> FileResponse:
+    debug_dir = pathlib.Path(config.DEBUG_DIR).resolve()
+    path = (debug_dir / filename).resolve()
+    if debug_dir not in path.parents or not path.is_file():
+        raise HTTPException(status_code=404)
+    return FileResponse(path)
