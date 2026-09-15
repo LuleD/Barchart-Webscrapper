@@ -130,6 +130,30 @@ set for a cloud deploy, since it can't do the interactive login step:
 Without a valid session, the service still runs and serves the dashboard,
 but shows "no data yet" — logging in is what actually produces data.
 
+## IP blocking / proxy
+
+Confirmed by deploying: Barchart's CloudFront/WAF blocks requests from
+Railway's IPs with a 403 before the page loads at all, regardless of having
+a valid logged-in session. This is Barchart blocking cloud-hosting IP
+ranges generally, not specific to Railway or to anything in this scraper's
+code — the same is likely on most cloud hosts (AWS, GCP, a VPS, etc).
+
+The fix is a proxy that makes requests appear to come from a non-datacenter
+IP. Set `PROXY_SERVER` (and `PROXY_USERNAME`/`PROXY_PASSWORD` if the
+provider requires auth) — see `.env.example` / the matching Railway
+variables. Two tiers to know about:
+
+- **Datacenter proxies** (e.g. Webshare's free tier) are cheap/free but are
+  often on the same kind of IP-range blocklists as Railway itself, so they
+  may still get a 403 — worth trying first since it costs nothing, but
+  don't be surprised if it doesn't work.
+- **Residential proxies** (e.g. Bright Data, Smartproxy/Decodo, Oxylabs,
+  IPRoyal) route through real ISP-assigned IPs and reliably get past this
+  kind of block, but cost money (typically billed per GB).
+
+No proxy is needed running locally on a home network — the login step and
+`data/debug/` HTML dump captured earlier both loaded fine from a home IP.
+
 ## Tests
 
 Offline, no network/browser required:

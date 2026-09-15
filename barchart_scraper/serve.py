@@ -52,7 +52,7 @@ async def main() -> None:
     server = uvicorn.Server(uv_config)
 
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+        browser = await p.chromium.launch(headless=True, proxy=config.playwright_proxy())
         context = await browser.new_context(storage_state=storage_state)
         page = await context.new_page()
 
